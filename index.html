@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folder Structure Visualizer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #f8fafc;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #64748b;
+      margin-bottom: 36px;
+    }
+
+    .tree-container {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 28px 32px;
+      min-width: 360px;
+      max-width: 560px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .tree-node {
+      list-style: none;
+    }
+
+    .tree-node + .tree-node {
+      margin-top: 2px;
+    }
+
+    .node-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+
+    .node-row:hover {
+      background: #2a2f4a;
+    }
+
+    .node-row.selected {
+      background: #1e3a5f;
+    }
+
+    .icon {
+      font-size: 1rem;
+      flex-shrink: 0;
+      width: 20px;
+      text-align: center;
+    }
+
+    .label {
+      font-size: 0.875rem;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      white-space: nowrap;
+    }
+
+    .label.folder {
+      color: #93c5fd;
+      font-weight: 500;
+    }
+
+    .label.file {
+      color: #cbd5e1;
+    }
+
+    .label.file.js   { color: #fde68a; }
+    .label.file.jsx  { color: #6ee7b7; }
+    .label.file.css  { color: #c4b5fd; }
+    .label.file.md   { color: #94a3b8; }
+    .label.file.json { color: #fb923c; }
+    .label.file.env  { color: #f87171; }
+    .label.file.img  { color: #f9a8d4; }
+    .label.file.font { color: #a78bfa; }
+
+    .children {
+      padding-left: 20px;
+      border-left: 1px solid #2d3148;
+      margin-left: 18px;
+      margin-top: 2px;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+    }
+
+    .children.collapsed {
+      display: none;
+    }
+
+    .toggle {
+      font-size: 0.6rem;
+      color: #475569;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle.open { transform: rotate(90deg); }
+
+    .badge {
+      margin-left: auto;
+      font-size: 0.7rem;
+      background: #2d3148;
+      color: #64748b;
+      border-radius: 4px;
+      padding: 1px 6px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Folder Structure Visualizer</h1>
+  <p class="subtitle">Click folders to expand or collapse them</p>
+
+  <div class="tree-container">
+    <ul id="tree" class="tree-node"></ul>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#fde68a"></div>.js</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#6ee7b7"></div>.jsx</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c4b5fd"></div>.css</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div>.md</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div>.json</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div>.env</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f9a8d4"></div>image</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>font</div>
+  </div>
+
+  <script>
+    const structure = {
+      name: "my-project",
+      type: "folder",
+      open: true,
+      children: [
+        {
+          name: "src", type: "folder", open: true,
+          children: [
+            {
+              name: "components", type: "folder", open: true,
+              children: [
+                { name: "Header.jsx",  type: "file" },
+                { name: "Footer.jsx",  type: "file" },
+                { name: "Sidebar.jsx", type: "file" },
+              ]
+            },
+            {
+              name: "utils", type: "folder", open: false,
+              children: [
+                { name: "helpers.js", type: "file" },
+                { name: "api.js",     type: "file" },
+              ]
+            },
+            {
+              name: "styles", type: "folder", open: false,
+              children: [
+                { name: "main.css",      type: "file" },
+                { name: "variables.css", type: "file" },
+              ]
+            },
+          ]
+        },
+        {
+          name: "public", type: "folder", open: false,
+          children: [
+            {
+              name: "images", type: "folder", open: false,
+              children: [
+                { name: "logo.png",   type: "file" },
+                { name: "banner.jpg", type: "file" },
+              ]
+            },
+            {
+              name: "fonts", type: "folder", open: false,
+              children: [
+                { name: "Inter.woff2", type: "file" },
+              ]
+            },
+          ]
+        },
+        {
+          name: "tests", type: "folder", open: false,
+          children: [
+            {
+              name: "unit", type: "folder", open: false,
+              children: [
+                { name: "helpers.test.js", type: "file" },
+                { name: "api.test.js",     type: "file" },
+              ]
+            },
+            {
+              name: "integration", type: "folder", open: false,
+              children: [
+                { name: "app.test.js", type: "file" },
+              ]
+            },
+          ]
+        },
+        {
+          name: "docs", type: "folder", open: false,
+          children: [
+            { name: "README.md", type: "file" },
+            { name: "API.md",    type: "file" },
+          ]
+        },
+        { name: "package.json",  type: "file" },
+        { name: "index.js",      type: "file" },
+        { name: ".env.example",  type: "file" },
+      ]
+    };
+
+    function fileIcon(name) {
+      const ext = name.split('.').pop().toLowerCase();
+      const icons = {
+        jsx: '⚛', js: '📜', css: '🎨', md: '📄',
+        json: '📦', env: '🔒', example: '🔒',
+        png: '🖼', jpg: '🖼', jpeg: '🖼', woff2: '✏️', woff: '✏️',
+      };
+      return icons[ext] || '📄';
+    }
+
+    function fileClass(name) {
+      const ext = name.split('.').pop().toLowerCase();
+      const map = {
+        jsx: 'jsx', js: 'js', css: 'css', md: 'md',
+        json: 'json', example: 'env', env: 'env',
+        png: 'img', jpg: 'img', jpeg: 'img',
+        woff2: 'font', woff: 'font',
+      };
+      return map[ext] || '';
+    }
+
+    function countChildren(node) {
+      if (node.type !== 'folder') return 0;
+      return node.children ? node.children.length : 0;
+    }
+
+    function buildNode(node) {
+      const li = document.createElement('li');
+      li.className = 'tree-node';
+
+      const row = document.createElement('div');
+      row.className = 'node-row';
+
+      if (node.type === 'folder') {
+        const toggle = document.createElement('span');
+        toggle.className = 'toggle' + (node.open ? ' open' : '');
+        toggle.textContent = '▶';
+
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        icon.textContent = node.open ? '📂' : '📁';
+
+        const label = document.createElement('span');
+        label.className = 'label folder';
+        label.textContent = node.name;
+
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = countChildren(node);
+
+        row.append(toggle, icon, label, badge);
+
+        const childList = document.createElement('ul');
+        childList.className = 'children' + (node.open ? '' : ' collapsed');
+
+        node.children.forEach(child => childList.appendChild(buildNode(child)));
+
+        row.addEventListener('click', () => {
+          const isOpen = !childList.classList.contains('collapsed');
+          childList.classList.toggle('collapsed', isOpen);
+          toggle.classList.toggle('open', !isOpen);
+          icon.textContent = isOpen ? '📁' : '📂';
+          row.classList.toggle('selected', !isOpen);
+        });
+
+        li.append(row, childList);
+      } else {
+        const spacer = document.createElement('span');
+        spacer.style.width = '20px';
+        spacer.style.flexShrink = '0';
+
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        icon.textContent = fileIcon(node.name);
+
+        const label = document.createElement('span');
+        label.className = 'label file ' + fileClass(node.name);
+        label.textContent = node.name;
+
+        row.append(spacer, icon, label);
+        row.addEventListener('click', () => row.classList.toggle('selected'));
+        li.appendChild(row);
+      }
+
+      return li;
+    }
+
+    const root = buildNode(structure);
+    document.getElementById('tree').appendChild(root);
+  </script>
+</body>
+</html>
